@@ -18,7 +18,7 @@ class Tox(Command):
 
 
 setup(
-    name="kafka-python",
+    name="kafka-quixey",
     version="0.8.1-1",
 
     install_requires=["distribute", "tox"],
@@ -27,12 +27,14 @@ setup(
 
     packages=["kafka"],
 
-    author="David Arthur",
-    author_email="mumrah@gmail.com",
-    url="https://github.com/mumrah/kafka-python",
+    author="David Arthur, Jim Lim",
+    author_email="mumrah@gmail.com, jim@quixey.com",
+    url="https://github.com/quixey/kafka-python",
     license="Copyright 2012, David Arthur under Apache License, v2.0",
     description="Pure Python client for Apache Kafka",
     long_description="""
+I (Jim Lim) am releasing this to pypi under quixey for personal convenience.
+
 This module provides low-level protocol support for Apache Kafka as well as
 high-level consumer and producer classes. Request batching is supported by the
 protocol as well as broker-aware request routing. Gzip and Snappy compression
