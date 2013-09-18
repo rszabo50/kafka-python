@@ -80,7 +80,7 @@ class KafkaClient(object):
             self.topic_partitions.pop(topic, None)
 
             if not partitions:
-                log.warn("Partition is unassigned, delay for 1s and retry")
+                log.warn("Partition is unassigned, delay for 1s and retry. Have you created {} on zookeeper?".format(topic))
                 time.sleep(1)
                 self._load_metadata_for_topics(topic)
                 break
