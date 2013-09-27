@@ -4,6 +4,7 @@ from functools import partial
 from itertools import count, cycle
 import logging
 from operator import attrgetter
+import socket
 import struct
 import time
 import zlib
@@ -72,7 +73,7 @@ class KafkaClient(object):
         log.debug("Broker metadata: %s", brokers)
         log.debug("Topic metadata: %s", topics)
 
-        self.brokers.update(brokers)
+        self.brokers = brokers
         self.topics_to_brokers = {}
 
         for topic, partitions in topics.items():
@@ -100,6 +101,12 @@ class KafkaClient(object):
         "Generate a new correlation id"
         return KafkaClient.ID_GEN.next()
 
+    def _safe_conn_reinit(self, conn):
+        try:
+            conn.reinit()
+        except socket.error, e:
+            log.error("unsuccessful reinit", e)
+
     def _send_broker_unaware_request(self, requestId, request):
         """
         Attempt to send a broker-agnostic request to one of the available
@@ -113,6 +120,7 @@ class KafkaClient(object):
             except Exception, e:
                 log.warning("Could not send request [%r] to server %s, "
                             "trying next server: %s" % (request, conn, e))
+                self._safe_conn_reinit(conn)
                 continue
 
         return None
@@ -153,6 +161,9 @@ class KafkaClient(object):
         # Accumulate the responses in a dictionary
         acc = {}
 
+        # keep a list of payloads that were failed to be sent to brokers
+        failed_payloads = []
+
         # For each broker, send the list of request payloads
         for broker, payloads in payloads_by_broker.items():
             conn = self._get_conn_for_broker(broker)
@@ -161,14 +172,23 @@ class KafkaClient(object):
                                  correlation_id=requestId, payloads=payloads)
 
             # Send the request, recv the response
-            conn.send(requestId, request)
-
-            if decoder_fn is None:
+            try:
+                conn.send(requestId, request)
+                if decoder_fn is None:
+                    continue
+                response = conn.recv(requestId)
+            except Exception, e:
+                log.warning("Could not send request [%s] to server %s: %s" % (request, conn, e))
+                failed_payloads += payloads
+                self._safe_conn_reinit(conn)
+                self.topics_to_brokers = {}
                 continue
 
-            response = conn.recv(requestId)
             for response in decoder_fn(response):
                 acc[(response.topic, response.partition)] = response
+
+        if failed_payloads:
+            raise FailedPayloadsException(failed_payloads)
 
         # Order the accumulated responses by the original key order
         return (acc[k] for k in original_keys) if acc else ()
