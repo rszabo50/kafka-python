@@ -19,7 +19,7 @@ class Tox(Command):
 
 setup(
     name="kafka-quixey",
-    version="0.8.1-1",
+    version="0.8.1-q2",
 
     install_requires=["distribute", "tox"],
     tests_require=["tox"],
