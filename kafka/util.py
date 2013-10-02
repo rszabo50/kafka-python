@@ -3,7 +3,7 @@ from itertools import groupby
 import struct
 from threading import Thread, Event
 
-from common import BufferUnderflowError
+from common import *
 
 
 def write_int_string(s):
