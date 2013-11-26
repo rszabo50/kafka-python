@@ -100,7 +100,11 @@ class Producer(object):
 
                 # Adjust the timeout to match the remaining period
                 count -= 1
-                timeout = (send_at - datetime.now()).total_seconds()
+                dt = (send_at - datetime.now())
+                if hasattr(dt,'total_seconds'):
+                    timeout = dt.total_seconds()
+                else:
+                    timeout = (dt.microseconds + (dt.seconds + dt.days * 24 * 3600) * 10**6) / 10**6
                 msgset[partition].append(msg)
 
             # Send collected requests upstream
